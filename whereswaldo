@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# whereis
+
+# D.S. Crawford
+# 01 Mar 2017
+
+# geolocate IP
+
+# Parameters: $1 - IP address
+
+echo $1 | perl /home/dogbert/geolocation/wheres-waldo.pl --format=isp
+
+nslookup $1 | egrep 'name'
