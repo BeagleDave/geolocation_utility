@@ -3,7 +3,8 @@
 # wheres-waldo.pl
 #
 # Author:	D.S. Crawford
-#		Sacramento State University / Information Security Office
+#		California State University, Sacramento / Information Security Office
+#
 # Date:		11 Nov 2014
 #
 # Purpose:	Geolocate IP filter
@@ -17,6 +18,7 @@
 #		2016-10-07	ISP retrieval
 #		2021-04-14	DNS lookup option
 #		2021-09-28	Port to WSL
+#		2024-04-03	Handle IPv6 link local addresses
 #
 use DBI;
 use Getopt::Long qw(GetOptions);
@@ -107,6 +109,14 @@ sub find_waldo {
 		$rec =~ s/$address/$IPv4/;
 		$address = $IPv4;
 		$IP = $IPv4;
+	}
+        elsif ($address =~ m/^fe80\:/) {
+		#
+                # IPv6 link local address space: fe80::/10
+		# Set location to default location and return
+		#
+		my ($country, $region, $city, $lat, $long, $isp, $organization) = set_default_location();
+		return ($country, $region, $city, $lat, $long, $isp, $organization);
 	}
 	elsif ($address =~ m/[0-9a-f]{2,4}\:|\:\:/) {
 		# 

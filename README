@@ -1,19 +1,23 @@
 
 
-I wrote the enclosed utility a few years ago… I’ve just never been organized enough to build out a GitHub home for it.
+I wrote the enclosed utility ten years ago… I’ve just never been organized enough to build out a GitHub home for it.
 
-I was unable to get the native Maxmind API to run under Perl, but a student assistant found an open-sourced site that used the public data, and I reverse engineered it. 
+Background: For two years, I was unable to get the native Maxmind API to run under Perl, but a student assistant found an open-sourced site built in Go that used the public data loaded in an SQLite database, 
+and I reverse engineered the code to Perl. 
 
-Please find enclosed a Perl routine that reads IPs (both IPv4 and V6) and looks them up. 
+This Perl routine reads IPs (both IPv4 and V6) and looks them up in the Maxmind geolocation data. 
 
-The build-waldo.sh script should set up the environment and run it. Please note that the script looks for update-geolocation-db.sh. The version of this script
-included is "without key" - update-geolocation-db-wo_key.sh. It should, however, pull the publicly available files ... Just rename it to update-geolocation-db.sh.
+The build-waldo.sh script should set up the environment and run it. 
+Please note that the script looks for update-geolocation-db.sh. The version of this script
+included is the bash script "without a license key". It should, however, pull the publicly available files ... If you have a subscription, add the key value to the variable.
 
-Reads from stdin and writes to stdout. Assumes first field in a tab delimited file is the IP in question. Works well in bash scripts to geolocate log entries… Use awk to pull out the originating IP and put it in the first field. Code appends geolocation information to the log entry. 
+Reads from stdin and writes to stdout. 
+Assumes first field in a tab delimited file is the IP in question. 
+
+Works well in bash scripts to geolocate log entries… Use awk to pull out the originating IP and put it in the first field. Code appends geolocation information to the log entry. 
 
 There is also a shell script that creates a SQLite database from the Maxmind data that the Perl routine uses. I have redacted our campus license key. The code should default and pull the publicly available data files. Please note that the licensed version of the data is an order of magnitude denser, so it is more accurate.
 
 ~90% of my security log analytics is spatial based, and uses this code to geolocate logs… Well worth the ~$1400 / year for a site license for Maxmind city and ISP datasets. For us, one license covers usage for the entire campus!
 
-Only customization needed in wheres-waldo.pl is the RFC1918 address space is hard-coded for my site in the code, and the only known bug is the code doesn’t do exception handling for IPv6 link local addresses (fe80::/10 addresses) .
-
+Only customization needed in wheres-waldo.pl is the RFC1918 address space is hard-coded for my site in set_default_location.
