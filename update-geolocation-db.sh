@@ -16,12 +16,14 @@
 #		14 Oct 2016 - add MaxMind public data files
 #		14 Jun 2017 - bug fix - hard code paths, remove test comments
 #		09 May 2018 - error handling email address corrupted/failing. Changed gzip to --force, fixed mail addresses
-#		22 Aug 2022 - WSL port
+#		21 Feb 2024 - curl certs expired. Set "do not check certs" parameter (--insecure) on curl cmds
+#		25 Apr 2024 - change curl parameters due to Maxmind repository changes
 #
 # Sac State MaxMind license: 	City, ISP databases
 #				Sac State license_key=[redacted]
 # 
-# LICENSEKEY=[redacted]
+LICENSEKEY=[redacted]
+USERID=[redacted]
 
 # Uncomment the appropriate version: 
 # 	- Licensed version: GeoIP2
@@ -29,29 +31,26 @@
 # VERSION=Geolite2
 VERSION=GeoIP2
 
-cd $HOME/geolocation
-
 echo "*** `date` ***"
 
 # Download the weekly updated geolocation file
 
 if [[ -z $LICENSEKEY ]]; then
 	# Free version of Maxmind data
-	curl "http://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip" > geoip.zip
-	curl "http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz" > GeoLite2-City.mmdb.gz
+	curl --insecure "http://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip" > geoip.zip
+	curl --insecure "http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz" > GeoLite2-City.mmdb.gz
 	gunzip GeoLite2-City.mmdb.gz
 else
 	# Licensed version of Maxmind data
 	# .csv files
-	curl "https://download.maxmind.com/app/geoip_download?edition_id=GeoIP2-City-CSV&suffix=zip&license_key=$LICENSEKEY" > geoip.zip
+	curl -k -o geoip.zip -J -L -u $USERID:$LICENSEKEY "https://download.maxmind.com/geoip/databases/GeoIP2-City-CSV/download?suffix=zip" 
 	# binary database
-	curl "https://download.maxmind.com/app/geoip_download?edition_id=GeoIP2-City&suffix=tar.gz&license_key=$LICENSEKEY" > mmdb.tar.gz
+	curl -k -o mmdb.tar.gz -J -L -u $USERID:$LICENSEKEY "https://download.maxmind.com/geoip/databases/GeoIP2-City/download?suffix=tar.gz"
 	# ISP data service
-	curl "https://download.maxmind.com/app/geoip_download?edition_id=GeoIP2-ISP-CSV&suffix=zip&license_key=$LICENSEKEY" > isp.zip
+	curl -k -o isp.zip -J -L -u $USERID:$LICENSEKEY "https://download.maxmind.com/geoip/databases/GeoIP2-ISP-CSV/download?suffix=zip" 
 	# binary ISP database 
-	curl "https://download.maxmind.com/app/geoip_download?edition_id=GeoIP2-ISP&suffix=tar.gz&license_key=$LICENSEKEY" > isp_mmdb.tar.gz
+	curl -k -o isp_mmdb.tar.gz -J -L -u $USERID:$LICENSEKEY "https://download.maxmind.com/geoip/databases/GeoIP2-ISP/download?suffix=tar.gz"	
 fi
-#
 #
 # .csv files
 #
@@ -107,6 +106,13 @@ if [ -s geoip.zip ]; then
 	# clean up
 	rm ipdb.sqlite.old
 	rm geoip.zip isp.zip *.csv 
+else
+	echo -e "\n *** Geolocation refresh failed ***\n\nReverting to previous week" | \
+        email -V -f 'iso@csus.edu' \
+                -n 'ISO Log Analytics' \
+                -s 'Geolocation Database Refresh Failed' \
+                -r 'smtp.saclink.csus.edu' \
+		'david.crawford@csus.edu'
 fi
 
 #
@@ -119,17 +125,24 @@ if [ -s mmdb.tar.gz ]; then
 	tar -xf mmdb.tar
 	tar -xf isp_mmdb.tar
 	# Replace database files
-	cd $HOME/geolocation/GeoIP2-City_*
-	rm -f $HOME/geolocation/GeoIP2-City.mmdb
+	cd GeoIP2-City_*
+	rm -f ../GeoIP2-City.mmdb
 	mv ./GeoIP2-City.mmdb ../GeoIP2-City.mmdb
-	cd $HOME/geolocation/GeoIP2-ISP_*
-	rm -f $HOME/geolocation/GeoIP2-ISP.mmdb
+	cd ../GeoIP2-ISP_*
+	rm -f ../GeoIP2-ISP.mmdb
 	mv ./GeoIP2-ISP.mmdb ../GeoIP2-ISP.mmdb
 	# clean up 
-	cd $HOME/geolocation
+	cd ..
 	rm -f *.csv
 	rm -f mmdb.tar isp_mmdb.tar
 	rm -rf ./GeoIP2-City_*
 	rm -rf ./GeoIP2-ISP_*
+else
+	echo -e "\n *** Geolocation refresh failed *** Maxmind binary database not updated ***\n" | \
+        email -V -f 'iso@csus.edu' \
+                -n 'ISO Log Analytics' \
+                -s 'Geolocation Database Refresh Failed' \
+                -r 'smtp.saclink.csus.edu' \
+		'david.crawford@csus.edu'
 fi
 	
